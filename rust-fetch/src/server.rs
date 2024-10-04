@@ -95,6 +95,8 @@ fn aggregate_by_interval(
 }
 
 // Handler to query and return depth history data
+// Handler to query and return depth history data
+// Handler to query and return depth history data
 async fn get_depth_history(Query(params): Query<QueryParams>) -> Json<serde_json::Value> {
     match connect_db().await {
         Ok(client) => {
@@ -135,7 +137,13 @@ async fn get_depth_history(Query(params): Query<QueryParams>) -> Json<serde_json
             }
 
             // Sorting
-            query.push_str(" ORDER BY start_time ASC");
+            let order = params.order.as_deref().unwrap_or("desc").to_lowercase(); // Default is "desc"
+            if order != "asc" && order != "desc" {
+                return Json(json!({ "error": "Invalid 'order' parameter. Use 'asc' or 'desc'." }));
+            }
+
+            // Dynamically append the order based on the provided parameter
+            query.push_str(&format!(" ORDER BY start_time {}", order));
 
             // If the interval is provided, fetch all rows first for proper aggregation
             if let Some(interval) = &params.interval {
@@ -171,7 +179,6 @@ async fn get_depth_history(Query(params): Query<QueryParams>) -> Json<serde_json
                 };
 
                 // Sorting based on the order parameter (asc or desc)
-                let order = params.order.as_deref().unwrap_or("asc");
                 intervals.sort_by(|a, b| {
                     if order == "asc" {
                         a.end_time.cmp(&b.end_time)
